@@ -1,0 +1,102 @@
+---
+title: "daily24"
+format: html
+editor: visual
+---
+
+```{r}
+library(readr)
+
+cities <- read_csv("data/uscities.csv")
+
+```
+
+```{r}
+head(cities)
+```
+
+
+```{r}
+library(readr)
+library(sf)
+
+cities <- read_csv("data/uscities.csv")
+
+head(cities)
+
+cities_sf <- st_as_sf(cities, coords = c("lng", "lat"), crs = 4326)
+
+plot(cities_sf)
+
+```
+
+```{r}
+remotes::install_github("mikejohnson51/AOI")
+library(AOI)
+
+# Get Larimer County boundary
+larimer <- aoi_get(state = "CO", county = "Larimer")
+
+```
+
+```{r}
+library(dplyr)
+library(sf)
+
+larimer_cities <- st_filter(cities_sf, larimer)
+```
+
+```{r}
+library(ggplot2)
+
+ggplot() +
+  geom_sf(data = larimer, fill = NA, color = "black", size = 1) +   
+  geom_sf(data = larimer_cities, color = "blue", size = 2) +        
+  theme_minimal()
+
+```
+
+```{r}
+top3_cities <- larimer_cities %>%
+  arrange(desc(population)) %>%
+  slice(1:3)
+```
+
+```{r}
+ggplot() +
+  geom_sf(data = larimer, fill = NA, color = "black", size = 1) +
+  geom_sf(data = larimer_cities, color = "blue", size = 2) +
+  geom_sf(data = top3_cities, color = "red", size = 4) +  # Bigger, red dots for top 3
+  theme_minimal()
+```
+
+```{r}
+install.packages("ggrepel")
+library(ggrepel)
+
+```
+
+```{r}
+ggplot() +
+  geom_sf(data = larimer, fill = NA, color = "black", size = 1) +
+  geom_sf(data = larimer_cities, color = "black", size = 2) +
+  geom_sf(data = top3_cities, color = "red", size = 4) +
+  ggrepel::geom_label_repel(
+    data = top3_cities,
+    aes(label = city, geometry = geometry),
+    stat = "sf_coordinates",
+    size = 3
+  ) +
+  theme_void() +
+  labs(
+    title = "Cities in Larimer County, Colorado",
+    subtitle = "Population by city"
+  )
+
+
+```
+
+```{r}
+ggsave("imgs/larimer_cities.png", width = 8, height = 6, dpi = 300)
+```
+
